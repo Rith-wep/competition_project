@@ -93,27 +93,31 @@ def classify_risk(motion_area, motion_delta, density):
     reasons = []
 
     if motion_area > LOW_MOTION:
-        score += 1
+        score += min(30, 10 * motion_area/LOW_MOTION)
         reasons.append("noticeable movement")
 
     if motion_area > MEDIUM_MOTION:
-        score += 2
+        score += min(40, 10 * motion_area/MEDIUM_MOTION)
         reasons.append("heavy group movement")
 
     if motion_delta > HIGH_MOTION_SPIKE:
-        score += 2
+        score += min(40, 10 *  motion_delta/HIGH_MOTION_SPIKE)
         reasons.append("sudden acceleration")
 
     if density > HIGH_DENSITY:
-        score += 2
+        score += 40
         reasons.append("high crowd density")
 
-    if score >= 5:
-        return "HIGH", ", ".join(reasons)
-    elif score >= 3:
-        return "MEDIUM", ", ".join(reasons)
+    score = int(score)
+
+    if score >= 70:
+        return "HIGH", ", ".join(reasons), score
+    elif score >= 30:
+        return "MEDIUM", ", ".join(reasons), score
     else:
-        return "LOW", "normal movement"
+        return "LOW", "normal movement", score
+
+
 
 # Generate alerts for sustained abnormal crowd behavior
 def generate_alert(risk, reason, abnormal_frames, last_alert_time):
@@ -153,7 +157,7 @@ def generate_alert(risk, reason, abnormal_frames, last_alert_time):
 
 
 # Display risk level and FPS on the video frame
-def display_info(frame, risk, fps, time_text):
+def display_info(frame, risk, fps, time_text, score):
     color = (0, 255, 0)
     if risk == "MEDIUM":
         color = (0, 255, 255)
@@ -165,7 +169,9 @@ def display_info(frame, risk, fps, time_text):
 
     cv2.putText(frame, f"RISK: {risk}", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
 
-    cv2.putText(frame, f"FPS: {fps:.2f}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 100), 2)
+    cv2.putText(frame, f"RISK SCORE: {score}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+
+    cv2.putText(frame, f"FPS: {fps:.2f}", (20, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 100), 2)
 
     cv2.imshow("Crowd Safety Monitor", frame)
 
@@ -205,7 +211,8 @@ def main():
         density = min(1.0, motion_area / (frame_area * 0.6))
         motion_delta = abs(motion_area - prev_motion)
 
-        risk, reason = classify_risk(motion_area, motion_delta, density)
+
+        risk, reason, score = classify_risk(motion_area, motion_delta, density)
 
         if risk in ["HIGH", "MEDIUM"]:
             abnormal_frames += 1
@@ -216,7 +223,7 @@ def main():
             risk, reason, abnormal_frames, last_alert_time
         )
 
-        display_info(frame, risk, fps, time_text)
+        display_info(frame, risk, fps, time_text, score)
 
         prev_gray = gray.copy()
         prev_motion = motion_area
