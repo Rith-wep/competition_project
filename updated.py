@@ -137,24 +137,21 @@ def resolve_conflicting_signals(risk, motion_area, motion_delta, density):
         danger_signals += 1
 
     # High density alone should not cause HIGH risk
-    '''
         if density > HIGH_DENSITY and danger_signals == 0:
             return "MEDIUM", "high density without panic indicators"
-    '''
     return risk, None
 
 
 # ---------- Confidence Estimation ----------
-def calculate_confidence(risk, abnormal_frames, score = 100):
-    '''base = min(1.0, abnormal_frames / 5)
+def calculate_confidence(risk, abnormal_frames):
+    base = min(1.0, abnormal_frames / 5)
 
     if risk == "HIGH":
         return round(min(1.0, base + 0.3), 2)
     elif risk == "MEDIUM":
         return round(min(1.0, base + 0.1), 2)
     else:
-        return round(base * 0.5, 2)'''
-    return score/100-0.02
+        return round(base * 0.5, 2)
 
 
 # Generate alerts for sustained abnormal crowd behavior
@@ -200,7 +197,6 @@ def generate_alert(risk, reason, abnormal_frames, last_alert_time):
 
 # Display risk level and FPS on the video frame
 def display_info(frame, risk, fps, time_text, score, confidence):
-    # ---------- COLORS ----------
     COLORS = {
         "LOW": (0, 200, 0),
         "MEDIUM": (0, 200, 255),
@@ -208,35 +204,29 @@ def display_info(frame, risk, fps, time_text, score, confidence):
     }
     risk_color = COLORS[risk]
 
-    # ---------- BACKGROUND PANEL ----------
     overlay = frame.copy()
     cv2.rectangle(overlay, (10, 10), (420, 260), (30, 30, 30), -1)
     cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
 
-    # ---------- GRID POSITIONS ----------
     x = 25
     y = 40
     line_gap = 35
 
-    # ---------- TIME ----------
     cv2.putText(frame, time_text, (x, y),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
-    # ---------- RISK LEVEL ----------
     y += line_gap
     cv2.putText(frame, "RISK LEVEL", (x, y),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 1)
 
     y += line_gap
     cv2.putText(frame, risk, (x, y),
                 cv2.FONT_HERSHEY_SIMPLEX, 1.2, risk_color, 3)
 
-    # ---------- RISK SCORE ----------
     y += line_gap + 5
     cv2.putText(frame, "RISK SCORE", (x, y),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 1)
 
-    # ---------- SCORE BAR ----------
     bar_x = x
     bar_y = y + 15
     bar_width = 360
@@ -255,13 +245,12 @@ def display_info(frame, risk, fps, time_text, score, confidence):
                 (bar_x + bar_width - 80, bar_y + bar_height - 2),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
-    # ---------- FPS ----------
     y = bar_y + bar_height + 30
     cv2.putText(frame, f"FPS: {fps:.2f}",
                 (x, y),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (180, 255, 180), 2)
 
-    # ---------- CONFIDENCE ----------
+
     y += 30
     cv2.putText(frame, f"CONFIDENCE: {confidence:.2f}",
                 (x, y),
@@ -322,7 +311,7 @@ def main():
         else:
             abnormal_frames = 0
 
-        confidence = calculate_confidence(risk, abnormal_frames, score)
+        confidence = calculate_confidence(risk, abnormal_frames)
 
         last_alert_time, abnormal_frames = generate_alert(
             risk, reason, abnormal_frames, last_alert_time
